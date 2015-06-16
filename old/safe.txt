@@ -1,0 +1,191 @@
+//
+// Created by vladi on 6/14/15.
+//
+#include <stdio.h>
+#include <iostream>
+#include <stdlib.h>
+#include <limits>
+#include <sys/socket.h>
+#include <bits/socket_type.h>
+#include <pthread.h>
+
+using namespace std;
+
+#define PORT_ARG 1
+#define MAX_SIZE_ARG 2
+#define MAX_PORT_NUM 65535
+#define MIN_PORT_NUM 1
+#define NUM_OF_ARGS 3
+#define MAX_FILE_SIZE sizeof(off_t)
+#define MIN_FILE_SIZE 0
+#define FAILURE -1
+#define MAX_HOST_NAME 128
+#define MAX_PENDING_CONN 5
+#define SUCCESS 0
+#define SYS_ERROR(system_call) cerr << "Error: function:" << system_call << " errno: " << errno << endl; exit(1);
+
+struct arguments_struct
+{
+    unsigned int port;
+    unsigned int maxSize;
+};
+struct arguments_struct server_info;
+/**
+ * this function check if the arguments are legal and sets them.
+ * if not legal returns -1, else returns 0.
+ */
+int checkArgs(int argc, char const* argv[])
+{
+    if(argc != NUM_OF_ARGS)
+    {
+        return FAILURE;
+    }
+    server_info->port = (unsigned int)atoi(argv[PORT_ARG]);
+    if(server_info->port > MAX_PORT_NUM || server_info->port < MIN_PORT_NUM)
+    {
+        return FAILURE;
+    }
+    server_info->maxSize = (unsigned int)atoi(argv[MAX_SIZE_ARG]);
+    if(server_info->maxSize > MAX_FILE_SIZE || server_info->maxSize < MIN_FILE_SIZE)
+    {
+        retunr FAILURE;
+    }
+
+    return SUCCESS;
+}
+
+int createServer(unsigned int portNum)
+{
+    struct hostent *host;
+    char hostName[MAX_HOST_NAME + 1];
+    gethostname(hostName, MAX_HOST_NAME);
+    host = gethostbyname(hostName);
+
+    if(host == NULL)
+    {
+        SYS_ERROR("gethostbyname");
+    }
+
+    //set socket address
+    struct sockaddr_in socket_addr;
+    socket_addr.sin_family = host->h_addrtype;
+    socket_addr.sin_port = htons(port);
+    memcpy(&socket_addr.sin_addr, host->h_addr, host->h_length);
+
+    //creating new socket.
+    int server_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if(server_socket < 0)
+    {
+        SYS_ERROR("socket");
+    }
+
+    if(bind(server_socket, (struct sockaddr*) &socket_addr, sizeof(struct sockaddr_in)) < 0)
+    {
+        close(server_socket);
+        SYS_ERROR("bind");
+    }
+
+    listen(server_socket, MAX_PENDING_CONN);
+
+    return server_socket;
+}
+
+void rBytes(int socket, void* buf, size_t size)
+{
+    int read_bytes = 0;
+    auto msg_buf = (char*)buf;
+    for(size_t off = 0; off < size; off += read_bytes)
+    {
+        read_bytes = read(socket, msg_buf + off, size - off);
+        if(read_bytes  < 1)
+        {
+            SYS_ERROR("read");
+        }
+    }
+}
+void wBytes(int socket, void* buf, size_t size)
+{
+    int read_bytes;
+    auto msg_buf = (char*)buf;
+    for(size_t off = 0; off < size; off += read_bytes)
+    {
+        read_bytes = write(socket, msg_buf + off, size - off);
+        if(read_bytes  < 1)
+        {
+            SYS_ERROR("write");
+        }
+    }
+}
+
+void* client_handler(void * param)
+{
+    int clientSocket = *((int *) param);
+    ofstream file;
+    char buf[PACKET_SIZE];
+    size_t off;
+    off_t fileSize;
+    size_t fileNameSize;
+
+    rBytes(clientSocket, &fileNameSize, sizeof(size_t));
+    char file_name[fileNameSize];
+    rBytes(clientSocket, &file_name, fileNameSize);
+    rBytes(clientSocket, &fileSize, sizeof(off_t));
+    file.open(file_name);
+    if(!file.good())
+    {
+        SYS_ERROR("open");
+    }
+
+    for(off = fileSize; off > PACKET_SIZE; off -= PACKET_SIZE)
+    {
+        rBytes(clientSocket, buf, PACKET_SIZE);
+        file.write(buf, PACKET_SIZE);
+    }
+    if(off > 0)
+    {
+        rBytes(clientSocket, buf, off);
+        file.write(buf, off);
+    }
+
+}
+
+void runServer(int serverSocket, struct arguments_struct srvArgs)
+{
+    struct sockaddr clientAddr;
+    int * clientSocket;
+    socklen_t address_len = sizeof(struct sockaddr_storage);
+
+    //listens for clients.
+    while(true)
+    {
+        int *clientSocket;
+        *clientSocket = accept(serverSocket, NULL, NULL);
+        if(*clientSocket == FAILURE)
+        {
+            SYS_ERROR("accept");
+        }
+        pthread_t clientThread;
+        pthread_create(&clientThread, NULL, &client_handler, clientSocket);
+    }
+}
+
+int main(int argc, char const* argv[])
+{
+    //checks and set args.
+    if(!checkArgs(argc, argv))
+    {
+        cout << "Usage: srftp server-port max-file-size" << endl;
+        return FAILURE;
+    }
+
+    //creating new socket.
+    int serverSocket = createServer(args.port);
+    if(createServer(args))
+    {
+        return FAILURE;
+    }
+    runServer(serverSocket, srvArgs);
+    return 0;
+}
+

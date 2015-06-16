@@ -14,9 +14,6 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-#include <sys/time.h>
-
 #include <unistd.h>
 #include <netdb.h>
 #include <bits/stat.h>
@@ -53,13 +50,6 @@ struct arguments_struct
 };
 
 struct arguments_struct server_info;
-double timeDiff(struct timeval start, struct timeval stop)
-{
-    double sec = stop.tv_sec - start.tv_sec;
-    double msec = stop.tv_usec - start.tv_usec;
-    return ((sec * 1000000) + msec ) * 1000000000;
-}
-
 /**
  * this function check if the arguments are legal and sets them.
  * if not legal returns false, else returns true.
@@ -171,11 +161,6 @@ void writeFromBuf(int socket, void* buf, size_t size)
  */
 void* client_handler(void * param)
 {
-    struct timeval start;
-    struct timeval end;
-    gettimeofday(&start, NULL);
-
-
     int clientSocket = *((int *) param);
     ofstream file;
     char buf[PACKET_SIZE];
@@ -216,8 +201,6 @@ void* client_handler(void * param)
         }
         file.close();
     }
-    gettimeofday(&end, NULL);
-//    cerr << "file recieved in : " << timeDiff(start, end) << endl;
     close(clientSocket);
     delete((int*)param);
     return nullptr;

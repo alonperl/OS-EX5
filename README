@@ -1,0 +1,85 @@
+vladi, alonperl
+vladi kravtsov (312107139), alon perelmuter (200630887)
+EX: 5
+
+FILES:
+_____________________________________________________________________
+
+clftp.cpp - clients main function
+srftp.cpp - servers main function
+Makefile - help to the compilations and etc.
+README - This file
+performance.jpg - performance graph
+
+
+REMARKS:
+_____________________________________________________________________
+protocol - 
+when the connection is established the server sends to the client a message
+which contains the max-file-size, the client checks if the file size is
+smaller then the max size, if so the client replies "true" to the server
+and the server starting to recieve. first the clien sends file-name-size
+then file-name, the server opens a new file with name "file-name", then
+the client sends the file size, parses the file and begin to send 
+packets of size 1024 bytes each to the server. the server reads these bytes 
+to a buffer and copys them to the file. otherwise (the file size is invalid)
+the client replies "false" to the server and the sever close socket connection.   
+
+
+
+_______________________________________________________________________
+THEOTETICAL PART
+
+Reliable file transfer protocol over UDP connection:
+Protocol:
+except of the original headers (length and checksum) the client will add
+to the packets header the size of the file and the number of the packet
+by ascending order. 
+this upgraded UDP protocol solves the problem of unordered packets as well
+the lost packets problems. when the server stops recieveing, if the file
+size is smaller then the size in the header, the server will ask the
+client to send the lost packets (by lost packet number).
+the unordered packet problem solved as well by reordering the data by the
+packets number and then copys them to the file.
+this protocol is efficient because the client can start sending the 
+packets without the handshake with the server, but in total this protocol
+isnt efficient as the TCP protocol we implemented.
+the main changes in the server part are that he will need to check
+each packet number of packet if is matching to the next packet number
+that should arrive.  
+
+
+Performance evaluation of your program: (avg)
+File In Bytes	 Time
+
+4		 3.11E+11
+
+89408 		 1.11E+12
+
+918 		 3.38E+11
+
+10527308 	 1.05E+14
+
+408900		 4.08E+12
+
+2617 		 4.10E+11
+
+6673 		 3.52E+11
+
+16746 		 4.08E+11
+
+39900 		 8.41E+11
+
+4188900 	 5.19E+13
+
+710497 		 8.36E+12
+first we sent 9 files of different size for about 5 times each. then we calculated
+the average of each file time of transmission. then we analyzed the arival time
+of each file by using the gettimeofday() function and entered the data to
+excel table. the result shows that the relativity between size and transmition
+time are linear. the slope of the graph depends on the packet size that affect
+the number of packets that each file will split to. in case of small packet size
+the slope will be bigger else smaller.  
+
+
+

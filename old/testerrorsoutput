@@ -1,0 +1,27 @@
+**test result**
+
+server:
+negtive port:
+Usage: srftp server-port max-file-size
+zero port:
+Usage: srftp server-port max-file-size
+big port:
+Usage: srftp server-port max-file-size
+too big port:
+Usage: srftp server-port max-file-size
+zero size:
+Usage: srftp server-port max-file-size
+negtive size:
+Usage: srftp server-port max-file-size
+lake in args:
+Usage: srftp server-port max-file-size
+
+client:
+negtive port:
+zero port:
+big port:
+too big port:
+lake in args:
+file_not_exists:
+
+**test end**
